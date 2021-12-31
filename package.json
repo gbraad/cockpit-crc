@@ -51,7 +51,7 @@
     "webpack-cli": "^4.6.0"
   },
   "dependencies": {
-    "@code-ready/crc-react-components": "^0.5.5",
+    "@code-ready/crc-react-components": "^0.8.0",
     "@patternfly/patternfly": "4.164.2",
     "@patternfly/react-core": "4.168.8",
     "@patternfly/react-icons": "4.26.4",

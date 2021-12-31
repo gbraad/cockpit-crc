@@ -25,6 +25,14 @@ export function getStatus() {
     });
 }
 
+export function getLogs() {
+    return new Promise((resolve, reject) => {
+        crcCall("/api/logs", "GET")
+                .then(reply => resolve(JSON.parse(reply)))
+                .catch(reject);
+    });
+}
+
 export function startInstance() {
     return new Promise((resolve, reject) => {
         crcCall("/api/start", "POST")

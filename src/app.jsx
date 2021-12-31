@@ -37,13 +37,16 @@ export class Application extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
-            log: ""
+            log: "",
+            preset: "Unknown",
+            lastLineRead: 0
         };
 
         this.startInstance = this.startInstance.bind(this);
         this.stopInstance = this.stopInstance.bind(this);
         this.deleteInstance = this.deleteInstance.bind(this);
         this.updateStatus = this.updateStatus.bind(this);
+        this.updateLogs = this.updateLogs.bind(this);
         this.configurationValueChanged = this.configurationValueChanged.bind(this);
         this.configurationSave = this.configurationSave.bind(this);
         this.configurationReset = this.configurationReset.bind(this);
@@ -56,13 +59,13 @@ export class Application extends React.Component {
     componentDidMount() {
         this.configurationLoad();
         setInterval(this.updateStatus, 1000);
+        setInterval(this.updateLogs, 3000);
     }
 
     startInstance() {
-        this.log("→ Start clicked");
         client.startInstance()
                 .then((result) => {
-                    this.showToast(result);
+                    this.showToast("CRC instance started");
                 })
                 .catch((error) => {
                     const msg = error.message;
@@ -72,10 +75,9 @@ export class Application extends React.Component {
     }
 
     stopInstance() {
-        this.log("→ Stop clicked");
         client.stopInstance()
                 .then((result) => {
-                    this.showToast(result);
+                    this.showToast("CRC instance stopped");
                 })
                 .catch((error) => {
                     const msg = error.message;
@@ -85,10 +87,9 @@ export class Application extends React.Component {
     }
 
     deleteInstance() {
-        this.log("→ Delete clicked");
         client.deleteInstance()
                 .then((result) => {
-                    this.showToast(result);
+                    this.showToast("CRC instance deleted");
                 })
                 .catch((error) => {
                     const msg = error.message;
@@ -103,11 +104,10 @@ export class Application extends React.Component {
     }
 
     configurationSave(data) {
-        this.log("Save configuration");
         const values = Object.entries(data).filter(values => values[1] != "");
         client.setConfig({ properties: Object.fromEntries(values) })
                 .then(reply => {
-                    console.log(reply);
+                    console.log("CRC configuration saved");
                 })
                 .catch(ex => {
                     console.log(_("Failed to set configuration"));
@@ -116,15 +116,13 @@ export class Application extends React.Component {
     }
 
     configurationReset() {
-        this.log("Reset configuration");
         this.settingsLoad();
     }
 
     configurationLoad() {
-        this.log("Load configuration");
         client.getConfig()
                 .then(reply => {
-                    console.log(reply.Configs);
+                    console.log("CRC configuration loaded");
                     this.config.current.updateValues(reply.Configs);
                 })
                 .catch(ex => {
@@ -137,9 +135,28 @@ export class Application extends React.Component {
         this.logWindow.current.log(message);
     }
 
+    updateLogs() {
+        client.getLogs()
+                .then(reply => {
+                    if (reply.Messages.length > this.state.lastLineRead) {
+                        let lineIndex = 0;
+                        for (lineIndex = this.state.lastLineRead; lineIndex < reply.Messages.length; lineIndex++) {
+                            const logLine = reply.Messages[lineIndex];
+                            this.log(logLine);
+                        }
+                        this.setState({ lastLineRead: lineIndex });
+                    }
+                })
+                .catch(ex => {
+                    console.log(_("Failed to get logs"));
+                    this.log("E: " + ex.message);
+                });
+    }
+
     updateStatus() {
         client.getStatus()
                 .then(reply => {
+                    this.setState({ preset: reply.Preset });
                     this.control.current.updateStatus(reply);
                 })
                 .catch(ex => {
@@ -160,6 +177,7 @@ export class Application extends React.Component {
             <Page>
                 <PageSection>
                     <ControlCard ref={this.control}
+                        preset={this.state.preset}
                         onStartClicked={this.startInstance}
                         onStopClicked={this.stopInstance}
                         onDeleteClicked={this.deleteInstance} />
